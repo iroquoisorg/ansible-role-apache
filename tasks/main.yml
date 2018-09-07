@@ -1,0 +1,112 @@
+---
+- name: Install Apache
+  apt:
+    pkg: apache2
+    state: latest
+
+- name: Create current_modules list
+  shell: ls -1 /etc/apache2/mods-enabled/ | cut -d. -f 1 | sort -u
+  register: current_modules
+
+- name: Disable Apache Modules
+  shell: a2dismod {{ item }}
+  notify: restart apache
+  with_items: "{{ apache_disable_modules }}"
+  when: item in current_modules.stdout_lines
+
+- name: Enable Apache Modules
+  shell: a2enmod {{ item }}
+  notify: restart apache
+  with_items: "{{ apache_enable_modules }}"
+  when: item not in current_modules.stdout_lines
+
+- name: Disable apache2 default vhost
+  command: a2dissite 000-default
+  register: a2dissite
+  failed_when: >
+    a2dissite.rc != 0 and "000-default already" not in a2dissite.stdout
+  changed_when: >
+    a2dissite.rc == 0 and "000-default disabled" in a2dissite.stdout
+  notify:
+    - restart apache
+
+- name: Disable apache2 default-ssl vhost
+  command: a2dissite 000-default
+  register: a2dissite
+  failed_when: >
+    a2dissite.rc != 0 and "000-default-ssl already" not in a2dissite.stdout
+  changed_when: >
+    a2dissite.rc == 0 and "000-default-ssl disabled" in a2dissite.stdout
+  notify:
+    - restart apache
+
+- name: Setup basic security configuration
+  template:
+    src: security.conf.j2
+    dest: /etc/apache2/conf-available/security.conf
+  notify:
+    - restart apache
+
+- name: Setup apache ports configuration
+  template:
+    src: ports.conf.j2
+    dest: /etc/apache2/ports.conf
+  notify:
+    - restart apache
+
+- name: Delete default web root
+  file:
+    path: /var/www/html
+    state: absent
+  when: a2dissite | changed
+
+- name: Set umask for apache2 files
+  lineinfile:
+    dest: "/etc/apache2/envvars"
+    line: "umask 002"
+  notify: restart apache
+
+- name: Chown /var/log/apache2 to apache user
+  file:
+    owner: "{{ apache_user }}"
+    group: "{{ apache_group }}"
+    path: /var/log/apache2
+    state: directory
+
+- name: Chown /var/lock/apache2 to apache user
+  file:
+    owner: "{{ apache_user }}"
+    group: "{{ apache_group }}"
+    path: /var/lock/apache2
+    state: directory
+
+- name: Change www folder rights
+  file:
+    path: "/var/www"
+    state: directory
+    owner: "{{ apache_user }}"
+    group: "{{ apache_group }}"
+    mode: 0775
+
+- name: Configure APACHE_RUN_USER user
+  user:
+    name: "{{ apache_user }}"
+    shell: /bin/bash
+
+- name: Add APACHE_RUN_USER user keys
+  authorized_key:
+    user: "{{ apache_user }}"
+    key: "{{ item }}"
+  with_items: "{{ apache_user_public_keys }}"
+
+- name: Change APACHE_RUN_USER in envvars to vagrant
+  lineinfile:
+    dest: "/etc/apache2/envvars"
+    regexp: "^export APACHE_RUN_USER"
+    line: "export APACHE_RUN_USER={{ apache_user }}"
+
+- name: Change APACHE_RUN_GROUP in envvars to apache user
+  lineinfile:
+    dest: "/etc/apache2/envvars"
+    regexp: "^export APACHE_RUN_GROUP"
+    line: "export APACHE_RUN_GROUP={{ apache_user }}"
