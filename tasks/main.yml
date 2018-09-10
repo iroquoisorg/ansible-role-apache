@@ -7,6 +7,7 @@
 - name: Create current_modules list
   shell: ls -1 /etc/apache2/mods-enabled/ | cut -d. -f 1 | sort -u
   register: current_modules
+  changed_when: false
 
 - name: Disable Apache Modules
   shell: a2dismod {{ item }}
