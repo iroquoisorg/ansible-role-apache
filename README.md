@@ -40,3 +40,7 @@ apache_security_headers_x_content_type_options: "nosniff"
 apache_security_headers_x_frame_options: "sameorigin"
 
 ```
+
+# Development
+
+Please check [development guide](DEVELOPMENT.md) for details about developing and testing this role.

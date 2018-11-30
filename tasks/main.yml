@@ -2,7 +2,7 @@
 - name: Install Apache
   apt:
     pkg: apache2
-    state: latest
+    state: present
 
 - name: Create current_modules list
   shell: ls -1 /etc/apache2/mods-enabled/ | cut -d. -f 1 | sort -u
@@ -10,13 +10,13 @@
   changed_when: false
 
 - name: Disable Apache Modules
-  shell: a2dismod {{ item }}
+  command: a2dismod {{ item }}
   notify: restart apache
   with_items: "{{ apache_disable_modules }}"
   when: item in current_modules.stdout_lines
 
 - name: Enable Apache Modules
-  shell: a2enmod {{ item }}
+  command: a2enmod {{ item }}
   notify: restart apache
   with_items: "{{ apache_enable_modules }}"
   when: item not in current_modules.stdout_lines
