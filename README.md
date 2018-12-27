@@ -1,6 +1,6 @@
 # apache
 
-[![Build Status](https://travis-ci.com/iroquoisorg/ansible-role-apache.svg?branch=master)](https://travis-ci.com/iroquoisorg/ansible-role-memcached)
+[![Build Status](https://travis-ci.com/iroquoisorg/ansible-role-apache.svg?branch=master)](https://travis-ci.com/iroquoisorg/ansible-role-apache)
 
 Ansible role for apache
 
@@ -13,7 +13,7 @@ This role was prepared and tested for Ubuntu 16.04.
 # Default settings
 
 ```
-
+---
 apache_listen_port: 80
 apache_listen_ssl: true
 apache_disable_modules:
